@@ -2,30 +2,52 @@ namespace Cogni.MultilayerPerceptronNetwork;
 
 public class Perceptron
 {
-    private double[] _inputWeights { get; set; }
-    private double _bias { get; set; }
+    public double[] Weights { get; set; }
+    public int Index { get; set; }
+    public double Bias { get; set; }
 
-    public Perceptron(int numberOfInputs)
+    private PerceptronLayerType _layerType;
+
+    public Perceptron(int numberOfInputs, PerceptronLayerType layerType, int index)
     {
-        _inputWeights = new double[numberOfInputs];
-        
-        Random rand = new Random();
-        for(int i = 0 ; i < numberOfInputs ; i++) {
-            _inputWeights[i] = rand.NextDouble() * 2 - 1;
-        }
+        _layerType = layerType;
+        Weights = new double[numberOfInputs];
 
-        _bias = rand.NextDouble() * 2 - 1;
+        if (_layerType == PerceptronLayerType.Input)
+        {
+            Weights[0] = 1;
+            Bias = 0;
+        }
+        else
+        {
+            Random rand = new Random();
+            for (int i = 0; i < numberOfInputs; i++)
+            {
+                Weights[i] = rand.NextDouble() * 2 - 1;
+            }
+
+            Bias = rand.NextDouble() * 2 - 1;
+        }
+        
     }
 
     public double Predict(double[] input) {
         var result = 0.0;
 
         for(int i = 0 ; i < input.Count() ; i++) {
-            result += input[i] * _inputWeights[i];
+            result += input[i] * Weights[i];
         }
 
-        result += _bias;
+        result += Bias;
 
+        if (_layerType == PerceptronLayerType.Input)
+        {
+            Console.Write("");
+        }
+        if (_layerType == PerceptronLayerType.Output)
+        {
+            Console.Write("");
+        }
         return SigmoidFunction(result);
     }
 
@@ -33,5 +55,12 @@ public class Perceptron
     private double SigmoidFunction(double input)
     {
         return 1.0 / (1.0 + Math.Exp(-input));
+    }
+
+    private double ReLUFunction(double input)
+    {
+        if (input > 0)
+            return input;
+        return 0;
     }
 }
