@@ -3,7 +3,7 @@ using System.Drawing;
 
 var mlp = CreateMlpNetwork();
 
-var imageName = "lines";
+var imageName = "grad";
 var imagePath = @$"C:\dev\cogni_resource\{imageName}.bmp";
 
 if (!File.Exists(imagePath))
@@ -13,7 +13,7 @@ if (!File.Exists(imagePath))
 
 var trainingData = GetTrainingSetsFromImage(imagePath);
 
-TrainNetwork(mlp, trainingData, 20_000_000);
+TrainNetwork(mlp, trainingData, 1_000_000);
 
 var newImagePath = @$"C:\dev\cogni_resource\{imageName}_generated.bmp";
 WriteGeneratedImageToFile(mlp, newImagePath, 100, 100);

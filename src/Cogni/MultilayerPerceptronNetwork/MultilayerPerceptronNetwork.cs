@@ -5,15 +5,13 @@ namespace Cogni.MultilayerPerceptronNetwork;
 public class MultilayerPerceptronNetwork
 {
     public List<PerceptronLayer> Layers { get; set; }
-    private int _numberOfLayers => Layers.Count;
-    private List<OutputLayerData> OutputLayerData { get; set; }
+    private int NumberOfLayers => Layers.Count;
     private double LearningRate => 0.7;
 
     // TODO: Create network builder
     public MultilayerPerceptronNetwork()
     {
         Layers = new List<PerceptronLayer>();
-        OutputLayerData = new List<OutputLayerData>();
     }
 
     public MultilayerPerceptronNetwork AddInputLayer(int numberOfInputs)
@@ -50,13 +48,10 @@ public class MultilayerPerceptronNetwork
     {
         // TODO: validate if network has Input and Output layers
 
-        OutputLayerData.Clear();
         var nextInput = input;
-        for(int i = 0 ; i < _numberOfLayers; i++)
+        for(int i = 0 ; i < NumberOfLayers; i++)
         {
             var output = Layers[i].CalculateOutput(nextInput);
-
-            OutputLayerData.Add(new OutputLayerData(output));
             nextInput = output;
         }
 
@@ -76,9 +71,9 @@ public class MultilayerPerceptronNetwork
         }
 
         // Output layer weights update
-        double[][] deltas = new double[_numberOfLayers][];
+        double[][] deltas = new double[NumberOfLayers][];
 
-        var outputLayerIndex = _numberOfLayers - 1;
+        var outputLayerIndex = NumberOfLayers - 1;
         var outputLayer = Layers[outputLayerIndex];
 
         deltas[outputLayerIndex] = new double[outputLayer.NumberOfPerceptrons];
@@ -92,7 +87,7 @@ public class MultilayerPerceptronNetwork
         {
             for (int j = 0; j < outputLayer.Perceptrons[i].Weights.Length; j++)
             {
-                var errorDerivative = deltas[outputLayerIndex][i] * OutputLayerData[outputLayerIndex - 1].Output[j];
+                var errorDerivative = deltas[outputLayerIndex][i] * Layers[outputLayerIndex - 1].Perceptrons[j].LastOutput;
                 outputLayer.Perceptrons[i].Weights[j] -= LearningRate * errorDerivative;
             }
 
@@ -111,11 +106,11 @@ public class MultilayerPerceptronNetwork
                     errorToOutputDiff += deltas[i + 1][k] * Layers[i + 1].Perceptrons[k].Weights[j];
                 }
 
-                deltas[i][j] = errorToOutputDiff * SigmoidDerivative(OutputLayerData[i].Output[j]);
+                deltas[i][j] = errorToOutputDiff * SigmoidDerivative(Layers[i].Perceptrons[j].LastOutput);
 
                 for (int k = 0; k < Layers[i].Perceptrons[j].Weights.Length; k++)
                 {
-                    var errorDerivative = deltas[i][j] * OutputLayerData[i - 1].Output[k];
+                    var errorDerivative = deltas[i][j] * Layers[i - 1].Perceptrons[k].LastOutput;
                     Layers[i].Perceptrons[j].Weights[k] -= LearningRate * errorDerivative;
                 }
 

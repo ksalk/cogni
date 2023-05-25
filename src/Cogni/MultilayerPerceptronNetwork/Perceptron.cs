@@ -5,15 +5,16 @@ public class Perceptron
     public double[] Weights { get; set; }
     public int Index { get; set; }
     public double Bias { get; set; }
+    public double LastOutput { get; set; }
 
-    private PerceptronLayerType _layerType;
+    private PerceptronLayerType LayerType;
 
     public Perceptron(int numberOfInputs, PerceptronLayerType layerType, int index)
     {
-        _layerType = layerType;
+        LayerType = layerType;
         Weights = new double[numberOfInputs];
 
-        if (_layerType == PerceptronLayerType.Input)
+        if (LayerType == PerceptronLayerType.Input)
         {
             Weights[0] = 1;
             Bias = 0;
@@ -28,27 +29,23 @@ public class Perceptron
 
             Bias = rand.NextDouble() * 2 - 1;
         }
-        
+
     }
 
-    public double Predict(double[] input) {
+    public double Predict(double[] input)
+    {
         var result = 0.0;
 
-        for(int i = 0 ; i < input.Count() ; i++) {
+        for (int i = 0; i < input.Count(); i++)
+        {
             result += input[i] * Weights[i];
         }
 
         result += Bias;
 
-        if (_layerType == PerceptronLayerType.Input)
-        {
-            Console.Write("");
-        }
-        if (_layerType == PerceptronLayerType.Output)
-        {
-            Console.Write("");
-        }
-        return SigmoidFunction(result);
+        var output = SigmoidFunction(result);
+        LastOutput = output;
+        return output;
     }
 
     // TODO: export to IActivationFunction interface
