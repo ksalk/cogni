@@ -1,61 +1,95 @@
-﻿using System;
-
-namespace Cogni.MultilayerPerceptronNetwork;
+﻿namespace Cogni.MultilayerPerceptronNetwork;
 
 public class MultilayerPerceptronNetwork
 {
-    public List<PerceptronLayer> Layers { get; set; }
-    private int NumberOfLayers => Layers.Count;
+    private int NumberOfLayers => Weights.Length;
     private double LearningRate => 0.7;
+    internal int InputsCount { get; set; }
+    internal int OutputsCount { get; set; }
+
+    internal WeightMatrix[] Weights { get; set; }
+    internal BiasMatrix[] Bias { get; set; }
+    internal Matrix[] Outputs { get; set; }
 
     // TODO: Create network builder
     public MultilayerPerceptronNetwork()
     {
-        Layers = new List<PerceptronLayer>();
+
     }
 
     public MultilayerPerceptronNetwork AddInputLayer(int numberOfInputs)
     {
-        if(Layers.Any(layer => layer.LayerType == PerceptronLayerType.Input))
-            throw new InvalidOperationException("Cannot add more than one input layer.");
+        Weights = new WeightMatrix[1];
+        Weights[0] = new WeightMatrix(InputsCount, numberOfInputs, 1.0);
 
-        Layers.Add(PerceptronLayer.CreateInputLayer(numberOfInputs));
+        InputsCount = numberOfInputs;
         return this;
     }
 
     public MultilayerPerceptronNetwork AddHiddenLayer(int numberOfPerceptrons)
     {
-        if(!Layers.Any(layer => layer.LayerType == PerceptronLayerType.Input))
-            throw new InvalidOperationException("Cannot add hidden layer while no input layer is defined.");
+        var newWeights = new WeightMatrix[Weights.Length + 1];
+        for(int i = 0; i < Weights.Length; i++)
+        {
+            newWeights[i] = Weights[i];
+        }
+        newWeights[Weights.Length] = new WeightMatrix(newWeights[Weights.Length - 1].Columns, numberOfPerceptrons, 0.5);
+        Weights = newWeights;
 
-        if(Layers.Any(layer => layer.LayerType == PerceptronLayerType.Output))
-            throw new InvalidOperationException("Cannot add hidden layer while output layer is already defined.");
-
-        Layers.Add(PerceptronLayer.CreateHiddenLayer(numberOfPerceptrons, Layers.Last().NumberOfPerceptrons));
         return this;
     }
 
     public MultilayerPerceptronNetwork AddOutputLayer(int numberOfOutputs)
-    {      
-        if(Layers.Any(layer => layer.LayerType == PerceptronLayerType.Output))
-            throw new InvalidOperationException("Cannot add more than one output layer.");
+    {
+        var newWeights = new WeightMatrix[Weights.Length + 1];
+        for (int i = 0; i < Weights.Length; i++)
+        {
+            newWeights[i] = Weights[i];
+        }
+        newWeights[Weights.Length] = new WeightMatrix(newWeights[Weights.Length - 1].Columns, numberOfOutputs, 0.5);
+        Weights = newWeights;
 
-        Layers.Add(PerceptronLayer.CreateOutputLayer(numberOfOutputs, Layers.Last().NumberOfPerceptrons));
+        OutputsCount = numberOfOutputs;
+        return this;
+    }
+
+    public MultilayerPerceptronNetwork AddBias()
+    {
+        // INFO: should be called after layers definition
+        Bias = new BiasMatrix[Weights.Length];
+        for(int i = 0; i < Bias.Length; i++)
+        {
+            Bias[i] = new BiasMatrix(LayerPerceptronsCount(i), i == 0 ? 0.0 : 0.5);
+        }
         return this;
     }
 
     public double[] Predict(double[] input)
     {
         // TODO: validate if network has Input and Output layers
+        Outputs = new Matrix[NumberOfLayers];
+        Outputs[0] = new Matrix(input);
 
-        var nextInput = input;
-        for(int i = 0 ; i < NumberOfLayers; i++)
+        for (int i = 1; i < Weights.Length; i++)
         {
-            var output = Layers[i].CalculateOutput(nextInput);
-            nextInput = output;
-        }
+            Outputs[i] = Outputs[i - 1].MultiplyBy(Weights[i]);
+            
+            if(Bias != null)
+            {
+                for (int j = 0; j < Outputs[i].Columns; j++)
+                {
+                    Outputs[i].Values[0, j] += Bias[i].Values[0, j];
+                }
+            }
 
-        return nextInput;
+            for (int j = 0; j < Outputs[i].Columns; j++)
+            {
+                Outputs[i].Values[0, j] = SigmoidFunction(Outputs[i].Values[0, j]);
+            }
+        }
+        var result = Outputs[NumberOfLayers - 1].Flatten();
+
+        return result;
     }
 
     public void Train(double[] input, double[] expectedOutput)
@@ -74,50 +108,55 @@ public class MultilayerPerceptronNetwork
         double[][] deltas = new double[NumberOfLayers][];
 
         var outputLayerIndex = NumberOfLayers - 1;
-        var outputLayer = Layers[outputLayerIndex];
+        var outputLayerPerceptronsCount = LayerPerceptronsCount(outputLayerIndex);
 
-        deltas[outputLayerIndex] = new double[outputLayer.NumberOfPerceptrons];
-        for(int i = 0; i < outputLayer.NumberOfPerceptrons; i++)
+        deltas[outputLayerIndex] = new double[outputLayerPerceptronsCount];
+        for(int i = 0; i < outputLayerPerceptronsCount; i++)
         {
             deltas[outputLayerIndex][i] = (prediction[i] - expectedOutput[i]) * SigmoidDerivative(prediction[i]);
         }
 
         // Output layer weights update
-        for (int i = 0; i < outputLayer.NumberOfPerceptrons; i++)
+        for (int i = 0; i < outputLayerPerceptronsCount; i++)
         {
-            for (int j = 0; j < outputLayer.Perceptrons[i].Weights.Length; j++)
+            for (int j = 0; j < LayerPerceptronsCount(outputLayerIndex - 1); j++)
             {
-                var errorDerivative = deltas[outputLayerIndex][i] * Layers[outputLayerIndex - 1].Perceptrons[j].LastOutput;
-                outputLayer.Perceptrons[i].Weights[j] -= LearningRate * errorDerivative;
+                var errorDerivative = deltas[outputLayerIndex][i] * Outputs[outputLayerIndex - 1].Values[0, j];
+                Weights[outputLayerIndex].Values[j, i] -= LearningRate * errorDerivative;
             }
 
-            outputLayer.Perceptrons[i].Bias -= LearningRate * deltas[outputLayerIndex][i];
+            if(Bias != null)
+                Bias[outputLayerIndex].Values[0, i] -= LearningRate * deltas[outputLayerIndex][i];
         }
 
         // Hidden layers weigths update
         for (int i = outputLayerIndex - 1; i > 0; i--)
         {
-            deltas[i] = new double[Layers[i].NumberOfPerceptrons];
-            for (int j = 0; j < Layers[i].NumberOfPerceptrons; j++)
+            deltas[i] = new double[LayerPerceptronsCount(i)];
+            for (int j = 0; j < LayerPerceptronsCount(i); j++)
             {
                 var errorToOutputDiff = 0.0;
-                for (int k = 0; k < Layers[i + 1].NumberOfPerceptrons; k++)
+                for (int k = 0; k < LayerPerceptronsCount(i + 1); k++)
                 {
-                    errorToOutputDiff += deltas[i + 1][k] * Layers[i + 1].Perceptrons[k].Weights[j];
+                    errorToOutputDiff += deltas[i + 1][k] * Weights[i + 1].Values[j, k];
                 }
 
-                deltas[i][j] = errorToOutputDiff * SigmoidDerivative(Layers[i].Perceptrons[j].LastOutput);
+                deltas[i][j] = errorToOutputDiff * SigmoidDerivative(Outputs[i].Values[0, j]);
 
-                for (int k = 0; k < Layers[i].Perceptrons[j].Weights.Length; k++)
+                for (int k = 0; k < LayerPerceptronsCount(i - 1); k++)
                 {
-                    var errorDerivative = deltas[i][j] * Layers[i - 1].Perceptrons[k].LastOutput;
-                    Layers[i].Perceptrons[j].Weights[k] -= LearningRate * errorDerivative;
+                    var errorDerivative = deltas[i][j] * Outputs[i - 1].Values[0, k];
+                    Weights[i].Values[k, j] -= LearningRate * errorDerivative;
                 }
 
-                Layers[i].Perceptrons[j].Bias -= LearningRate * deltas[i][j];
+                if (Bias != null)
+                    Bias[i].Values[0, j] -= LearningRate * deltas[i][j];
             }
         }
     }
+
+    private int LayerPerceptronsCount(int layerNumber) => 
+        Weights[layerNumber].OutputsCount;
 
     private double SigmoidDerivative(double value)
     {
@@ -128,6 +167,18 @@ public class MultilayerPerceptronNetwork
     {
         if (value > 0)
             return 1;
+        return 0;
+    }
+
+    private double SigmoidFunction(double input)
+    {
+        return 1.0 / (1.0 + Math.Exp(-input));
+    }
+
+    private double ReLUFunction(double input)
+    {
+        if (input > 0)
+            return input;
         return 0;
     }
 }
