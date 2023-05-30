@@ -1,4 +1,6 @@
-﻿namespace Cogni.MultilayerPerceptronNetwork;
+﻿using Cogni.MultilayerPerceptronNetwork.ActivationFunctions;
+
+namespace Cogni.MultilayerPerceptronNetwork;
 
 public class MultilayerPerceptronNetwork
 {
@@ -10,6 +12,7 @@ public class MultilayerPerceptronNetwork
     internal WeightMatrix[] Weights { get; set; }
     internal BiasMatrix[] Bias { get; set; }
     internal Matrix[] Outputs { get; set; }
+    internal IActivationFunction ActivationFunction { get; set; }
 
     // TODO: Create network builder
     public MultilayerPerceptronNetwork()
@@ -64,6 +67,12 @@ public class MultilayerPerceptronNetwork
         return this;
     }
 
+    public MultilayerPerceptronNetwork WithActivationFunction(IActivationFunction function)
+    {
+        ActivationFunction = new SigmoidFunction();
+        return this;
+    }
+
     public double[] Predict(double[] input)
     {
         // TODO: validate if network has Input and Output layers
@@ -84,7 +93,7 @@ public class MultilayerPerceptronNetwork
 
             for (int j = 0; j < Outputs[i].Columns; j++)
             {
-                Outputs[i].Values[0, j] = SigmoidFunction(Outputs[i].Values[0, j]);
+                Outputs[i].Values[0, j] = ActivationFunction.GetValueFor(Outputs[i].Values[0, j]);
             }
         }
         var result = Outputs[NumberOfLayers - 1].Flatten();
@@ -113,7 +122,7 @@ public class MultilayerPerceptronNetwork
         deltas[outputLayerIndex] = new double[outputLayerPerceptronsCount];
         for(int i = 0; i < outputLayerPerceptronsCount; i++)
         {
-            deltas[outputLayerIndex][i] = (prediction[i] - expectedOutput[i]) * SigmoidDerivative(prediction[i]);
+            deltas[outputLayerIndex][i] = (prediction[i] - expectedOutput[i]) * ActivationFunction.GetDerivativeValueFor(prediction[i]);
         }
 
         // Output layer weights update
@@ -141,7 +150,7 @@ public class MultilayerPerceptronNetwork
                     errorToOutputDiff += deltas[i + 1][k] * Weights[i + 1].Values[j, k];
                 }
 
-                deltas[i][j] = errorToOutputDiff * SigmoidDerivative(Outputs[i].Values[0, j]);
+                deltas[i][j] = errorToOutputDiff * ActivationFunction.GetDerivativeValueFor(Outputs[i].Values[0, j]);
 
                 for (int k = 0; k < LayerPerceptronsCount(i - 1); k++)
                 {
@@ -157,28 +166,4 @@ public class MultilayerPerceptronNetwork
 
     private int LayerPerceptronsCount(int layerNumber) => 
         Weights[layerNumber].OutputsCount;
-
-    private double SigmoidDerivative(double value)
-    {
-        return value * (1 - value);
-    }
-
-    private double ReLUDerivative(double value)
-    {
-        if (value > 0)
-            return 1;
-        return 0;
-    }
-
-    private double SigmoidFunction(double input)
-    {
-        return 1.0 / (1.0 + Math.Exp(-input));
-    }
-
-    private double ReLUFunction(double input)
-    {
-        if (input > 0)
-            return input;
-        return 0;
-    }
 }
