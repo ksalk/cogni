@@ -1,4 +1,4 @@
-﻿namespace Cogni.MultilayerPerceptronNetwork
+﻿namespace Cogni.MultilayerPerceptron
 {
     internal class Matrix
     {
@@ -19,7 +19,7 @@
             Columns = values.Length;
             Values = new double[Rows, Columns];
 
-            for(int i = 0; i < Columns; i++)
+            for (int i = 0; i < Columns; i++)
             {
                 Values[0, i] = values[i];
             }
@@ -29,12 +29,12 @@
         {
             var result = new Matrix(Rows, matrix.Columns);
 
-            for(int i = 0; i < result.Rows; i++)
+            for (int i = 0; i < result.Rows; i++)
             {
-                for(int j = 0; j < result.Columns; j++)
+                for (int j = 0; j < result.Columns; j++)
                 {
                     double sum = 0.0;
-                    for(int k = 0; k < Columns; k++)
+                    for (int k = 0; k < Columns; k++)
                     {
                         sum += Values[i, k] * matrix.Values[k, j];
                     }
@@ -48,9 +48,9 @@
         public double[] Flatten()
         {
             var result = new double[Rows * Columns];
-            for(int i = 0; i < Rows; i++)
+            for (int i = 0; i < Rows; i++)
             {
-                for(int j = 0; j < Columns; j++)
+                for (int j = 0; j < Columns; j++)
                 {
                     result[i * Columns + j] = Values[i, j];
                 }

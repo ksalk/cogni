@@ -1,8 +1,9 @@
-﻿using Cogni.MultilayerPerceptronNetwork.ActivationFunctions;
+﻿using Cogni.MultilayerPerceptron;
+using Cogni.MultilayerPerceptron.ActivationFunctions;
 
-namespace Cogni.MultilayerPerceptronNetwork;
+namespace Cogni.MultilayerPerceptron;
 
-public class MultilayerPerceptronNetwork
+public class MultilayerPerceptron
 {
     private int NumberOfLayers => Weights.Length;
     private double LearningRate => 0.7;
@@ -15,12 +16,12 @@ public class MultilayerPerceptronNetwork
     internal IActivationFunction ActivationFunction { get; set; }
 
     // TODO: Create network builder
-    public MultilayerPerceptronNetwork()
+    public MultilayerPerceptron()
     {
 
     }
 
-    public MultilayerPerceptronNetwork AddInputLayer(int numberOfInputs)
+    public MultilayerPerceptron AddInputLayer(int numberOfInputs)
     {
         Weights = new WeightMatrix[1];
         Weights[0] = new WeightMatrix(InputsCount, numberOfInputs, 1.0);
@@ -29,7 +30,7 @@ public class MultilayerPerceptronNetwork
         return this;
     }
 
-    public MultilayerPerceptronNetwork AddHiddenLayer(int numberOfPerceptrons)
+    public MultilayerPerceptron AddHiddenLayer(int numberOfPerceptrons)
     {
         var newWeights = new WeightMatrix[Weights.Length + 1];
         for(int i = 0; i < Weights.Length; i++)
@@ -42,7 +43,7 @@ public class MultilayerPerceptronNetwork
         return this;
     }
 
-    public MultilayerPerceptronNetwork AddOutputLayer(int numberOfOutputs)
+    public MultilayerPerceptron AddOutputLayer(int numberOfOutputs)
     {
         var newWeights = new WeightMatrix[Weights.Length + 1];
         for (int i = 0; i < Weights.Length; i++)
@@ -56,7 +57,7 @@ public class MultilayerPerceptronNetwork
         return this;
     }
 
-    public MultilayerPerceptronNetwork AddBias()
+    public MultilayerPerceptron AddBias()
     {
         // INFO: should be called after layers definition
         Bias = new BiasMatrix[Weights.Length];
@@ -67,9 +68,10 @@ public class MultilayerPerceptronNetwork
         return this;
     }
 
-    public MultilayerPerceptronNetwork WithActivationFunction(IActivationFunction function)
+    public MultilayerPerceptron WithActivationFunction<TActivationFunction>() where TActivationFunction : IActivationFunction
     {
-        ActivationFunction = new SigmoidFunction();
+        var type = typeof(TActivationFunction);
+        ActivationFunction = (IActivationFunction)Activator.CreateInstance(type);
         return this;
     }
 
@@ -101,6 +103,7 @@ public class MultilayerPerceptronNetwork
         return result;
     }
 
+    // TODO: parallelize weights update in one layer
     public void Train(double[] input, double[] expectedOutput)
     {
         // Feed forward

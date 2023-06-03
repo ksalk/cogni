@@ -1,8 +1,10 @@
-﻿namespace Cogni.MultilayerPerceptronNetwork.ActivationFunctions
+﻿namespace Cogni.MultilayerPerceptron.ActivationFunctions
 {
     public class ReLUFunction : IActivationFunction
     {
-        public static ReLUFunction GetInstance() { return new ReLUFunction(); }
+        public ReLUFunction()
+        {
+        }
 
         public double GetDerivativeValueFor(double argument)
         {

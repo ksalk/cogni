@@ -1,8 +1,10 @@
-﻿namespace Cogni.MultilayerPerceptronNetwork.ActivationFunctions
+﻿namespace Cogni.MultilayerPerceptron.ActivationFunctions
 {
     public class SigmoidFunction : IActivationFunction
     {
-        public static SigmoidFunction GetInstance() { return new SigmoidFunction(); }
+        public SigmoidFunction()
+        {
+        }
 
         public double GetDerivativeValueFor(double argument)
         {

@@ -1,4 +1,4 @@
-﻿namespace Cogni.MultilayerPerceptronNetwork
+﻿namespace Cogni.MultilayerPerceptron
 {
     internal class BiasMatrix : Matrix
     {

@@ -1,4 +1,4 @@
-﻿namespace Cogni.MultilayerPerceptronNetwork
+﻿namespace Cogni.MultilayerPerceptron
 {
     internal class WeightMatrix : Matrix
     {
@@ -7,9 +7,9 @@
 
         public WeightMatrix(int rows, int cols, double? defaultValue = null) : base(rows, cols)
         {
-            for(int i = 0; i < rows; i++)
+            for (int i = 0; i < rows; i++)
             {
-                for(int j = 0; j < cols; j++)
+                for (int j = 0; j < cols; j++)
                 {
                     Values[i, j] = defaultValue.HasValue ?
                         defaultValue.Value :
