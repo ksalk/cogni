@@ -1,5 +1,6 @@
-﻿using Cogni.MultilayerPerceptronNetwork;
-using Cogni.MultilayerPerceptronNetwork.ActivationFunctions;
+﻿using Cogni.MultilayerPerceptron;
+using Cogni.MultilayerPerceptron.Builder;
+using Cogni.MultilayerPerceptron.ActivationFunctions;
 using System.Drawing;
 
 var mlp = CreateMlpNetwork();
@@ -9,7 +10,7 @@ TrainNetworkOnTestMethod(mlp, 1_000_000, rand);
 
 for (double i = 0.0; i <= 1.0; i += 0.05)
 {
-    var result = mlp.Predict(new[] { i, i })[0];
+    var result = mlp.PredictFor(i, i)[0];
 
     Console.WriteLine($"For (x, y): ({i:0.##}, {i:0.##})");
     Console.WriteLine($"Predicted: {result:0.####}");
@@ -24,15 +25,16 @@ double GetPixelColor(int x, int y, Bitmap bmp)
     return (double)(color.R) / 255;
 }
 
-MultilayerPerceptronNetwork CreateMlpNetwork()
+MultilayerPerceptron CreateMlpNetwork()
 {
-    return new MultilayerPerceptronNetwork()
-        .AddInputLayer(2)
-        .AddHiddenLayer(5)
-        .AddHiddenLayer(5)
-        .AddOutputLayer(1)
-        .AddBias()
-        .WithActivationFunction(SigmoidFunction.GetInstance());
+    return MultilayerPerceptronBuilder.CreateNetwork()
+        .AddLayer(2)
+        .AddLayer(8)
+        .AddLayer(8)
+        .AddLayer(1)
+        .WithBias()
+        .WithActivationFunction<SigmoidFunction>()
+        .Build();
 }
 
 List<ImageTrainingSet> GetTrainingSetsFromImage(string imagePath)
@@ -54,8 +56,10 @@ List<ImageTrainingSet> GetTrainingSetsFromImage(string imagePath)
     return result;
 }
 
-void TrainNetworkOnTestMethod(MultilayerPerceptronNetwork network, int iterations, Random r)
+void TrainNetworkOnTestMethod(MultilayerPerceptron network, int iterations, Random r)
 {
+    Console.WriteLine($"Started training the network over {iterations} iterations");
+    int updateInterval = iterations / 20;
     for (int i = 0; i < iterations; i++)
     {
         var x = r.NextDouble();
@@ -64,10 +68,15 @@ void TrainNetworkOnTestMethod(MultilayerPerceptronNetwork network, int iteration
         var result = TestMethod(x, y);
 
         network.Train(new double[] { x, y }, new double[] { result });
+        if(i % updateInterval == 1) {
+            Console.WriteLine($"{100 * (double)i / (double)iterations:0} %");
+        }
     }
+    
+    Console.WriteLine($"Finished training the network");
 }
 
-void TrainNetwork(MultilayerPerceptronNetwork network, List<ImageTrainingSet> trainingData, int iterations, string imageName)
+void TrainNetwork(MultilayerPerceptron network, List<ImageTrainingSet> trainingData, int iterations, string imageName)
 {
     var rand = new Random();
     for (int i = 0; i < iterations; i++)
@@ -84,7 +93,7 @@ void TrainNetwork(MultilayerPerceptronNetwork network, List<ImageTrainingSet> tr
     }
 }
 
-void WriteGeneratedImageToFile(MultilayerPerceptronNetwork network, string filePath, int width, int height)
+void WriteGeneratedImageToFile(MultilayerPerceptron network, string filePath, int width, int height)
 {
     var imageData = GenerateImageFromNetwork(mlp, width, height);
     var image = new Bitmap(width, height);
@@ -100,7 +109,7 @@ void WriteGeneratedImageToFile(MultilayerPerceptronNetwork network, string fileP
     image.Save(filePath);
 }
 
-double[,] GenerateImageFromNetwork(MultilayerPerceptronNetwork network, int width, int height)
+double[,] GenerateImageFromNetwork(MultilayerPerceptron network, int width, int height)
 {
     var imageData = new double[width, height];
     for (int i = 0; i < width; i++)
@@ -109,7 +118,7 @@ double[,] GenerateImageFromNetwork(MultilayerPerceptronNetwork network, int widt
         {
             var xNormalized = (double)i / width;
             var yNormalized = (double)j / height;
-            var pixelColorNormalized = mlp.Predict(new double[] { xNormalized, yNormalized })[0];
+            var pixelColorNormalized = mlp.PredictFor(xNormalized, yNormalized)[0];
             imageData[i, j] = pixelColorNormalized;
         }
     }

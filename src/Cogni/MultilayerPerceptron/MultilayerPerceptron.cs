@@ -1,12 +1,11 @@
-﻿using Cogni.MultilayerPerceptron;
-using Cogni.MultilayerPerceptron.ActivationFunctions;
+﻿using Cogni.MultilayerPerceptron.ActivationFunctions;
 
 namespace Cogni.MultilayerPerceptron;
 
 public class MultilayerPerceptron
 {
     private int NumberOfLayers => Weights.Length;
-    private double LearningRate => 0.7;
+    private double LearningRate => 0.8;
     internal int InputsCount { get; set; }
     internal int OutputsCount { get; set; }
 
@@ -15,13 +14,10 @@ public class MultilayerPerceptron
     internal Matrix[] Outputs { get; set; }
     internal IActivationFunction ActivationFunction { get; set; }
 
-    // TODO: Create network builder
-    public MultilayerPerceptron()
-    {
+    #region Network construction
+    internal MultilayerPerceptron() { }
 
-    }
-
-    public MultilayerPerceptron AddInputLayer(int numberOfInputs)
+    internal MultilayerPerceptron AddInputLayer(int numberOfInputs)
     {
         Weights = new WeightMatrix[1];
         Weights[0] = new WeightMatrix(InputsCount, numberOfInputs, 1.0);
@@ -30,7 +26,7 @@ public class MultilayerPerceptron
         return this;
     }
 
-    public MultilayerPerceptron AddHiddenLayer(int numberOfPerceptrons)
+    internal MultilayerPerceptron AddHiddenLayer(int numberOfPerceptrons)
     {
         var newWeights = new WeightMatrix[Weights.Length + 1];
         for(int i = 0; i < Weights.Length; i++)
@@ -43,7 +39,7 @@ public class MultilayerPerceptron
         return this;
     }
 
-    public MultilayerPerceptron AddOutputLayer(int numberOfOutputs)
+    internal MultilayerPerceptron AddOutputLayer(int numberOfOutputs)
     {
         var newWeights = new WeightMatrix[Weights.Length + 1];
         for (int i = 0; i < Weights.Length; i++)
@@ -57,7 +53,7 @@ public class MultilayerPerceptron
         return this;
     }
 
-    public MultilayerPerceptron AddBias()
+    internal MultilayerPerceptron AddBias()
     {
         // INFO: should be called after layers definition
         Bias = new BiasMatrix[Weights.Length];
@@ -68,14 +64,21 @@ public class MultilayerPerceptron
         return this;
     }
 
-    public MultilayerPerceptron WithActivationFunction<TActivationFunction>() where TActivationFunction : IActivationFunction
+    internal MultilayerPerceptron WithActivationFunction<TActivationFunction>() where TActivationFunction : IActivationFunction
     {
         var type = typeof(TActivationFunction);
         ActivationFunction = (IActivationFunction)Activator.CreateInstance(type);
         return this;
     }
 
-    public double[] Predict(double[] input)
+    internal MultilayerPerceptron WithActivationFunction(IActivationFunction activationFunction)
+    {
+        ActivationFunction = activationFunction;
+        return this;
+    }
+    #endregion
+
+    public double[] PredictFor(params double[] input)
     {
         // TODO: validate if network has Input and Output layers
         Outputs = new Matrix[NumberOfLayers];
@@ -103,11 +106,23 @@ public class MultilayerPerceptron
         return result;
     }
 
+    public double[][] PredictForRange(double[][] inputs)
+    {
+        var samplesCount = inputs.Length;
+
+        var outputs = new double[samplesCount][];
+        for(int i = 0; i < samplesCount; i++)
+        {
+            outputs[i] = PredictFor(inputs[i]);
+        }
+        return outputs;
+    }
+
     // TODO: parallelize weights update in one layer
     public void Train(double[] input, double[] expectedOutput)
     {
         // Feed forward
-        var prediction = Predict(input);
+        var prediction = PredictFor(input);
 
         // Output errors
         var outputErrors = new double[expectedOutput.Length];
@@ -145,6 +160,26 @@ public class MultilayerPerceptron
         for (int i = outputLayerIndex - 1; i > 0; i--)
         {
             deltas[i] = new double[LayerPerceptronsCount(i)];
+            //Parallel.ForEach(Enumerable.Range(0, LayerPerceptronsCount(i)), (j) =>
+            //{
+            //    var errorToOutputDiff = 0.0;
+            //    for (int k = 0; k < LayerPerceptronsCount(i + 1); k++)
+            //    {
+            //        errorToOutputDiff += deltas[i + 1][k] * Weights[i + 1].Values[j, k];
+            //    }
+
+            //    deltas[i][j] = errorToOutputDiff * ActivationFunction.GetDerivativeValueFor(Outputs[i].Values[0, j]);
+
+            //    for (int k = 0; k < LayerPerceptronsCount(i - 1); k++)
+            //    {
+            //        var errorDerivative = deltas[i][j] * Outputs[i - 1].Values[0, k];
+            //        Weights[i].Values[k, j] -= LearningRate * errorDerivative;
+            //    }
+
+            //    if (Bias != null)
+            //        Bias[i].Values[0, j] -= LearningRate * deltas[i][j];
+            //});
+
             for (int j = 0; j < LayerPerceptronsCount(i); j++)
             {
                 var errorToOutputDiff = 0.0;
